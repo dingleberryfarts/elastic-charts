@@ -117,28 +117,28 @@ jobs:
 
 #########################################################################################################
 
-  # trigger-e2e-tests:
-  #   name: Trigger end-to-end tests
-  #   needs: build-deploy
-  #   if: ${{ always() }} # Runs always to update e2e commit status
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Trigger e2e test workflow
-  #       uses: actions/github-script@v5
-  #       with:
-  #         # https://docs.github.com/en/rest/reference/repos#create-a-repository-dispatch-event
-  #         script: | # This is javascript :)
-  #           await github.rest.repos.createDispatchEvent({
-  #             ...context.repo,
-  #             event_type: 'End-to-end Tests',
-  #             client_payload: {
-  #               sha: "${{ github.event.client_payload.sha }}",
-  #               commit_sha: "${{ github.event.client_payload.sha }}",
-  #               environment: "${{ github.event.client_payload.environment }}",
-  #               environment_url: "${{ needs.build-deploy.outputs.environment_url }}",
-  #             },
-  #           });
-  #         github-token: ${{ secrets.ADMIN_TOKEN_GH }}
+  trigger-e2e-tests:
+    name: Trigger end-to-end tests
+    needs: build-deploy
+    if: ${{ always() }} # Runs always to update e2e commit status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger e2e test workflow
+        uses: actions/github-script@v5
+        with:
+          # https://docs.github.com/en/rest/reference/repos#create-a-repository-dispatch-event
+          script: | # This is javascript :)
+            await github.rest.repos.createDispatchEvent({
+              ...context.repo,
+              event_type: 'End-to-end Tests',
+              client_payload: {
+                sha: "${{ github.event.client_payload.sha }}",
+                commit_sha: "${{ github.event.client_payload.sha }}",
+                environment: "${{ github.event.client_payload.environment }}",
+                environment_url: "${{ needs.build-deploy.outputs.environment_url }}",
+              },
+            });
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
 #########################################################################################################
 

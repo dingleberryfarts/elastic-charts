@@ -25,9 +25,6 @@ on:
       - 'End-to-end Tests'
 
 jobs:
-
-#########################################################################################################
-
   deployment-status:
     name: e2e Checks
     uses: elastic/elastic-charts/.github/workflows/e2e_checks.reusable.yml@master
