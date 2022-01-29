@@ -126,12 +126,12 @@ jobs:
               ...context.repo,
               event_type: 'Deployment | Pull Request',
               client_payload: {
+                merge_sha: "${{ github.event.pull_request.merge_commit_sha }}",
+                head_sha: "${{ github.event.pull_request.head.sha }}",
                 environment: "${{ env.ENVIRONMENT_NAME }}",
-                branch_name: "${{ github.event.pull_request.head.ref }}",
-                sha: "${{ github.event.pull_request.head.sha }}",
+                deployment_id: "${{ fromJSON(steps.deployment.outputs.result).data.id }}",
                 pr_number: ${{ github.event.pull_request.number }},
                 is_fork: ${{ github.event.pull_request.head.repo.fork }},
-                deployment_id: "${{ fromJSON(steps.deployment.outputs.result).data.id }}",
               },
             });
           github-token: ${{ secrets.ADMIN_TOKEN_GH }}

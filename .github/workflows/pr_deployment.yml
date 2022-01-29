@@ -1,5 +1,13 @@
 #########################################################################################################
 # Handles deployment of pull requests to firebase
+#
+# expected inputs via client_payload
+#  - merge_sha
+#  - head_sha
+#  - environment
+#  - deployment_id
+#  - pr_number
+#  - is_fork
 #########################################################################################################
 
 name: PR Deployment
@@ -47,8 +55,9 @@ jobs:
       # - name: Checkout & Setup node
       #   uses: nickofthyme/checkout-node-setup@v1
       #   with:
-      #     repository: ${{ github.event.client_payload.repo }}
-      #     ref: "refs/pull/${{ env.pr_number }}/merge" # maybe /head ????
+      #     repository: ${{ github.repo }}
+      #     ref: ${{ github.event.client_payload.merge_sha }}
+      #     # ref: "refs/pull/${{ env.pr_number }}/merge" # maybe /head ????
       #     # See https://github.com/bahmutov/npm-install/issues/80
       #     skip-npm-install: true # This fails
       # - run: yarn install --frozen-lockfile # TODO: fix caching
@@ -91,8 +100,7 @@ jobs:
           result-encoding: string
           script: | # This is javascript :)
             const { data } = await github.rest.actions.listJobsForWorkflowRun({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              ...context.repo,
               run_id: context.runId,
             });
 
@@ -148,7 +156,7 @@ jobs:
     - name: Delete auto-created Deployment from build-deploy job
       if: ${{ github.event.client_payload.is_fork }}
       uses: actions/github-script@v5
-      with:
+      with: # TODO: check this again
         script: | # This is javascript :)
           const { data: [deployment]} = await github.rest.repos.listDeployments({
             ...context.repo,
@@ -186,29 +194,28 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+#########################################################################################################
+
   trigger-e2e-tests:
     name: Trigger end-to-end tests
     needs: build-deploy
-    if: ${{ always() }}
+    if: ${{ always() }} # Runs always to update e2e commit status
     runs-on: ubuntu-latest
-    env:
-      deployment_id: ${{ github.event.client_payload.deployment_id }}
     steps:
-      - name: Trigger deployment
+      - name: Trigger e2e test workflow
         uses: actions/github-script@v5
         with:
           # https://docs.github.com/en/rest/reference/repos#create-a-repository-dispatch-event
           script: | # This is javascript :)
             await github.rest.repos.createDispatchEvent({
               ...context.repo,
-              event_type: 'Deployment | Pull Request',
+              event_type: 'End-to-end Tests',
               client_payload: {
-                environment: "${{ env.ENVIRONMENT_NAME }}",
-                branch_name: "${{ github.event.pull_request.head.ref }}",
-                sha: "${{ github.event.pull_request.head.sha }}",
-                pr_number: ${{ github.event.pull_request.number }},
-                is_fork: ${{ github.event.pull_request.head.repo.fork }},
-                deployment_id: "${{ fromJSON(steps.deployment.outputs.result).data.id }}",
+                sha: "${{ github.event.client_payload.merge_sha }}",
+                commit_sha: "${{ github.event.client_payload.head_sha }}",
+                environment: "${{ github.event.client_payload.environment }}",
+                environment_url: "${{ needs.build-deploy.outputs.environment_url }}",
+                deployment_id: ${{ github.event.client_payload.deployment_id }},
               },
             });
           github-token: ${{ secrets.ADMIN_TOKEN_GH }}

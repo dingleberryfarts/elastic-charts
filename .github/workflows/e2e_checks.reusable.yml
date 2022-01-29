@@ -1,0 +1,216 @@
+#########################################################################################################
+# This is a reusable workflow to share common jobs between workflows.
+# See https://docs.github.com/en/actions/using-workflows/reusing-workflows
+# Runs playwright tests against e2e deployment for a given ref
+#########################################################################################################
+
+name: Reusable playwright workflow
+
+env:
+  NODE_VERSION: '16.13.2' # should match version in .nvmrc
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
+        description: Commit sha of current ref.
+      environment_url:
+        required: true
+        type: string
+        description: Url of current deployment environment. (i.e. firebase or gh-pages)
+      current_run_url:
+        required: true
+        type: string
+        description: Url of current workflow run, used as status target_url.
+      status-context:
+        required: true
+        type: string
+        description: Context used to set commit status.
+      environment:
+        required: true
+        type: string
+        description: Current deployment environment.
+      deployment_id:
+        required: false
+        type: string
+        description: Current deployment id. If none will use latest deployment.
+
+
+jobs:
+  deployment-status:
+    name: Deployment status
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get latest deployments
+      id: deployments
+      uses: octokit/graphql-action@v2.x
+      with:
+        # rest api does not provide status and graphql cannot lookup by id :(
+        query: |
+          query ($owner: String!, $repo: String!) {
+            repository(owner: $owner, name: $repo) {
+              deployments(
+                last: 10
+                environments: ["${{ inputs.environment }}"]
+                orderBy: { field: CREATED_AT, direction: DESC }
+              ) {
+                nodes {
+                  databaseId
+                  state
+                  latestStatus {
+                    state
+                  }
+                }
+              }
+            }
+          }
+        owner: ${{ github.event.repository.owner.name }}
+        repo: ${{ github.event.repository.name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Print response
+      shell: python
+      run: |
+        print("""${{ toJSON(steps.deployments.outputs.data) }}""")
+    - name: Trigger e2e test workflow
+      id: deployment_status
+      uses: actions/github-script@v5
+      with:
+        result-encoding: string
+        script: | # This is javascript :)
+          const deployments = ${{ fromJSON(steps.deployments.outputs.data).repository.deployments.nodes }}
+          const deployment = '${{ inputs.deployment_id }}' === '' ? deployments[0] : deployments.find(({ databaseId: id }) => {
+            return id === ${{ inputs.deployment_id }};
+          });
+
+          if (deployment) {
+            const { state, latestStatus } = deployment;
+            if (state === 'ACTIVE' && latestStatus.state === 'SUCCESS') return 'success';
+            return latestStatus.state === 'FAILURE' || latestStatus.state === 'ERROR'
+              ? latestStatus.state.toLowerCase()
+              : 'pending';
+          }
+        github-token: ${{ secrets.ADMIN_TOKEN_GH }}
+    - name: Print ouputs
+      shell: python
+      run: |
+        print("""${{ toJSON(steps.deployment_status.outputs.result) }}""")
+
+#########################################################################################################
+
+    - name: Handle no found deployment
+      if: ${{ !steps.deployment_status.outputs.result }}
+      uses: octokit/request-action@v2.x
+      with:
+        # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
+        route: POST /repos/{repo}/statuses/{sha}
+        repo: ${{ github.repository }}
+        sha: ${{ inputs.sha }}
+        context: ${{ inputs.status-context }}
+        state: 'error'
+        description: 'No deployment found, testing aborted.'
+        target_url: ${{ inputs.current_run_url }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Handle successful deployment
+      if: ${{ steps.deployment_status.outputs.result == 'success' }}
+      uses: octokit/request-action@v2.x
+      with:
+        # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
+        route: POST /repos/{repo}/statuses/{sha}
+        repo: ${{ github.repository }}
+        sha: ${{ inputs.sha }}
+        context: ${{ inputs.status-context }}
+        state: 'pending'
+        description: 'Deployment successful, starting tests'
+        target_url: ${{ inputs.current_run_url }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Handle deployment error or failure
+      if: ${{ steps.deployment_status.outputs.result == 'error' || steps.deployment_status.outputs.result == 'failure' }}
+      uses: octokit/request-action@v2.x
+      with:
+        # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
+        route: POST /repos/{repo}/statuses/{sha}
+        repo: ${{ github.repository }}
+        sha: ${{ inputs.sha }}
+        context: ${{ inputs.status-context }}
+        state: ${{ steps.deployment_status.outputs.result }}
+        description: "Deployment ${{ steps.deployment_status.outputs.result }}, testing aborted."
+        target_url: ${{ inputs.current_run_url }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Handle deployment error or failure
+      if: ${{ steps.deployment_status.outputs.result == 'error' || steps.deployment_status.outputs.result == 'failure' }}
+      uses: octokit/request-action@v2.x
+      with:
+        # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
+        route: POST /repos/{repo}/statuses/{sha}
+        repo: ${{ github.repository }}
+        sha: ${{ inputs.sha }}
+        context: ${{ inputs.status-context }}
+        state: ${{ steps.deployment_status.outputs.result }}
+        description: "Deployment ${{ steps.deployment_status.outputs.result }}, testing aborted."
+        target_url: ${{ inputs.current_run_url }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Handle pending deployment # To catch edge case, should never be pending a deployment
+      if: ${{ steps.deployment_status.outputs.result == 'pending' }}
+      uses: octokit/request-action@v2.x
+      with:
+        # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
+        route: POST /repos/{repo}/statuses/{sha}
+        repo: ${{ github.repository }}
+        sha: ${{ inputs.sha }}
+        context: ${{ inputs.status-context }}
+        state: error
+        description: "Deployment pending, testing aborted."
+        target_url: ${{ inputs.current_run_url }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Fail check run if deployment was not successful
+      if: ${{ steps.deployment_status.outputs.result != 'success' }}
+      uses: actions/github-script@v3
+      with:
+        script: core.setFailed("Testing aborted due to '${{ steps.deployment_status.outputs.result || "missing" }}' deployment.")
+
+#########################################################################################################
+
+  ping:
+    name: Ping server
+    if: ${{ success() }}
+    runs-on: ubuntu-latest
+    needs: deployment-status
+    steps:
+      - name: Check the deployed e2e server URL
+        id: ping
+        uses: jtalk/url-health-check-action@v2
+        with:
+          url: ${{ inputs.environment_url }}
+          max-attempts: 3
+          retry-delay: 2s
+      - name: Set commit status
+        if: ${{ failure() }}
+        uses: octokit/request-action@v2.x
+        with:
+          # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
+          route: POST /repos/{repo}/statuses/{sha}
+          repo: ${{ github.repository }}
+          sha: ${{ inputs.sha }}
+          context: ${{ inputs.status-context }}
+          state: error
+          description: 'Deployment unresponsive, testing aborted.'
+          target_url: ${{ inputs.current_run_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fail check run if deployment unresponsive
+        if: ${{ failure() }}
+        uses: actions/github-script@v3
+        with:
+          script: core.setFailed("Deployment unresponsive, check environment url.")
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+#########################################################################################################
