@@ -271,7 +271,8 @@ jobs:
         uses: nickofthyme/checkout-node-setup@v1
         with:
           skip-npm-install: true # This fails in this github context
-      - run: yarn install --frozen-lockfile # TODO: fix caching
+      - name: Install node modules
+        run: yarn install --frozen-lockfile # TODO: fix caching
         with:
           working-directory: e2e
       - name: Test run
