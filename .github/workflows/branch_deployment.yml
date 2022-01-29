@@ -115,43 +115,20 @@ jobs:
             }
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-#########################################################################################################
-
-  # trigger-e2e-tests:
-  #   name: Trigger end-to-end tests
-  #   needs: build-deploy
-  #   if: ${{ always() }} # Runs always to update e2e commit status
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Trigger e2e test workflow
-  #       uses: actions/github-script@v5
-  #       with:
-  #         # https://docs.github.com/en/rest/reference/repos#create-a-repository-dispatch-event
-  #         script: | # This is javascript :)
-  #           await github.rest.repos.createDispatchEvent({
-  #             ...context.repo,
-  #             event_type: 'End-to-end Tests',
-  #             client_payload: {
-  #               sha: "${{ github.event.client_payload.sha }}",
-  #               commit_sha: "${{ github.event.client_payload.sha }}",
-  #               environment: "${{ github.event.client_payload.environment }}",
-  #               environment_url: "${{ needs.build-deploy.outputs.environment_url }}",
-  #             },
-  #           });
-  #         github-token: ${{ secrets.ADMIN_TOKEN_GH }}
 
 #########################################################################################################
 
-  deployment-status:
+  e2e-tests:
     name: e2e Tests
     uses: elastic/elastic-charts/.github/workflows/e2e_tests.reusable.yml@master
+    needs: build-deploy
     with:
       status_context: Playwright e2e
       sha: ${{ github.event.client_payload.sha }}
       commit_sha: "${{ github.event.client_payload.sha }}"
       current_run_url: "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
       environment: "${{ github.event.client_payload.environment }}"
-      environment_url: ${{ github.event.client_payload.environment_url }}
+      environment_url: "${{ needs.build-deploy.outputs.environment_url }}"
 
 #########################################################################################################
 
@@ -159,7 +136,7 @@ jobs:
     name: Print context on failure
     # if: ${{ failure() }} # TODO this
     if: ${{ always() }}
-    needs: [build-deploy, cleanup]
+    needs: [build-deploy, cleanup, e2e-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Print github context
