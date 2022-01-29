@@ -227,7 +227,7 @@ jobs:
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.event.client_payload.sha }}
-          skip-npm-install: true
+          skip-npm-install: true # not required here
       - name: Get test file paths
         id: test-files
         shell: python
@@ -269,6 +269,9 @@ jobs:
     steps:
       - name: Checkout & Setup node
         uses: nickofthyme/checkout-node-setup@v1
+        with:
+          skip-npm-install: true # This fails in this github context
+      - run: yarn install --frozen-lockfile # TODO: fix caching
         with:
           working-directory: e2e
       - name: Test run

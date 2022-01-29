@@ -47,7 +47,7 @@ jobs:
           repository: ${{ github.repo }}
           ref: ${{ github.event.client_payload.sha }}
           # See https://github.com/bahmutov/npm-install/issues/80
-          skip-npm-install: true # This fails on deployment events
+          skip-npm-install: true # This fails in this github context
       - run: yarn install --frozen-lockfile # TODO: fix caching
 
       - name: Building storybook

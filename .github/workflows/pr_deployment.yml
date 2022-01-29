@@ -67,7 +67,7 @@ jobs:
       #     ref: ${{ github.event.client_payload.merge_sha }}
       #     # ref: "refs/pull/${{ env.pr_number }}/merge" # maybe /head ????
       #     # See https://github.com/bahmutov/npm-install/issues/80
-      #     skip-npm-install: true # This fails
+      #     skip-npm-install: true # This fails on deployment events
       # - run: yarn install --frozen-lockfile # TODO: fix caching
 
 #########################################################################################################
