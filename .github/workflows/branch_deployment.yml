@@ -38,7 +38,7 @@ jobs:
     environment:
       name: ${{ github.event.client_payload.environment }}
     outputs:
-      environment_url: https://ech-e2e-ci--alpha-zfvo4b6u.web.app # TODO this
+      environment_url: https://ech-e2e-ci--alphaaa-zfvo4b6u.web.app # TODO this
       # environment_url: ${{ steps.deploy.outputs.details_url }}
     steps:
       - run: echo "Placeholder"

@@ -254,7 +254,7 @@ jobs:
         run: echo "${{ steps.playwright.outputs.version }}"
 
   e2e:
-    name: 'e2e Test / ${{ matrix.test-file }} / ${{ matrix.browser }}'
+    name: 'Test / ${{ matrix.test-file }} / ${{ matrix.browser }}'
     runs-on: ubuntu-latest
     needs: e2e-setup
     strategy:
@@ -279,7 +279,7 @@ jobs:
         run: yarn test --project=${{ matrix.browser }} ./tests/${{ matrix.test-file }}
 
   e2e-status-success:
-    name: e2e Status
+    name: set success Status
     if: ${{ success() }}
     needs: e2e
     runs-on: ubuntu-latest
@@ -299,14 +299,14 @@ jobs:
           sha: ${{ inputs.commit_sha }}
           context: ${{ env.status_context }}
           state: 'success'
-          description: 'All tests passed!'
+          description: 'All tests passed!' # TODO add number of tests
           target_url: ${{ env.current_run_url }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   e2e-status-failure:
-    name: e2e Status
-    if: ${{ always() }}
+    name: Set failure status
+    if: ${{ failure() }}
     runs-on: ubuntu-latest
     needs: e2e
     steps:
@@ -318,8 +318,28 @@ jobs:
           repo: ${{ github.repository }}
           sha: ${{ inputs.commit_sha }}
           context: ${{ env.status_context }}
-          state: 'success'
-          description: 'Some tests failed'
+          state: 'failure'
+          description: 'Some tests failed' # TODO add number of tests
+          target_url: ${{ env.current_run_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  e2e-status-cancel:
+    name: Set failure status
+    if: ${{ cancelled() }}
+    runs-on: ubuntu-latest
+    needs: e2e
+    steps:
+      - name: Handle successful deployment
+        uses: octokit/request-action@v2.x
+        with:
+          # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
+          route: POST /repos/{repo}/statuses/{sha}
+          repo: ${{ github.repository }}
+          sha: ${{ inputs.commit_sha }}
+          context: ${{ env.status_context }}
+          state: 'failure'
+          description: 'Tests were cancelled'
           target_url: ${{ env.current_run_url }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -341,5 +361,9 @@ jobs:
         shell: python
         run: |
           print("""${{ toJSON(inputs) }}""")
+      - name: Print needs context
+        shell: python
+        run: |
+          print("""${{ toJSON(needs) }}""")
 
 #########################################################################################################

@@ -54,10 +54,10 @@ jobs:
           await github.rest.repos.createOrUpdateEnvironment({
             ...context.repo,
             environment_name: "${{ github.ref_name }}",
-            reviewers: [{
-              type: 'Team',
-              id: 3693417, // datavis team id
-            }],
+            // reviewers: [{
+            //   type: 'Team',
+            //   id: 3693417, // datavis team id
+            // }],
           });
         github-token: ${{ secrets.ADMIN_TOKEN_GH }}
 
