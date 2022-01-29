@@ -22,12 +22,11 @@ permissions:
   security-events: none
 
 on:
-  # Needed to allow forks to access secrets in ci with limited scope
-  # This is why we limit 3rd party contributors running actions
+  # Allows forks to access token so must limit 3rd party contributors
   # See https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target
   pull_request_target:
     branches:
-      - master
+      # - master
       - alpha
       # - next
       - '[0-9]+.[0-9]+.[0-9]+'
