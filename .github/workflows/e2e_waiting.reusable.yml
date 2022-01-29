@@ -39,6 +39,10 @@ jobs:
     name: Deployment status
     runs-on: ubuntu-latest
     steps:
+    - name: Print github context
+      shell: python
+      run: |
+        print("""${{ toJSON(github) }}""")
     - name: Get latest deployments
       id: deployments
       uses: octokit/graphql-action@v2.x
@@ -62,7 +66,7 @@ jobs:
               }
             }
           }
-        owner: ${{ github.event.repository.owner.name }}
+        owner: ${{ github.event.repository.owner.login }}
         repo: ${{ github.event.repository.name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
