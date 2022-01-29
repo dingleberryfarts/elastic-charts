@@ -226,7 +226,7 @@ jobs:
         uses: nickofthyme/checkout-node-setup@v1
         with:
           repository: ${{ github.repository }}
-          ref: ${{ github.event.client_payload.sha }}
+          ref: ${{ inputs.sha }}
           skip-npm-install: true # not required here
       - name: Get test file paths
         id: test-files
@@ -295,7 +295,7 @@ jobs:
           # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
           route: POST /repos/{repo}/statuses/{sha}
           repo: ${{ github.repository }}
-          sha: ${{ github.event.client_payload.commit_sha }}
+          sha: ${{ inputs.commit_sha }}
           context: ${{ env.status_context }}
           state: 'success'
           description: 'All tests passed!'
@@ -315,7 +315,7 @@ jobs:
           # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
           route: POST /repos/{repo}/statuses/{sha}
           repo: ${{ github.repository }}
-          sha: ${{ github.event.client_payload.commit_sha }}
+          sha: ${{ inputs.commit_sha }}
           context: ${{ env.status_context }}
           state: 'success'
           description: 'Some tests failed'
