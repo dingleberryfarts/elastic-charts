@@ -93,7 +93,7 @@ jobs:
             if (['ERROR', 'FAILURE'].includes(latestStatus.state)) return latestStatus.state.toLowerCase();
             return 'pending';
           }
-        github-token: ${{ secrets.ADMIN_TOKEN_GH }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Print ouputs
       shell: python
       run: |
