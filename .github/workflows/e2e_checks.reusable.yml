@@ -87,10 +87,9 @@ jobs:
 
           if (deployment) {
             const { state, latestStatus } = deployment;
-            if (state === 'ACTIVE' && latestStatus.state === 'SUCCESS') return 'success';
-            return latestStatus.state === 'FAILURE' || latestStatus.state === 'ERROR'
-              ? latestStatus.state.toLowerCase()
-              : 'pending';
+            if (state === 'ACTIVE' && latestStatus.state === 'SUCCESS') return 'success'
+            if (['ERROR', 'FAILURE', 'WAITING'].includes(latestStatus.state)) return latestStatus.state.toLowerCase();
+            return 'pending';
           }
         github-token: ${{ secrets.ADMIN_TOKEN_GH }}
     - name: Print ouputs
@@ -125,6 +124,20 @@ jobs:
         context: ${{ inputs.status-context }}
         state: 'pending'
         description: 'Deployment successful, starting tests'
+        target_url: ${{ inputs.current_run_url }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Handle waiting deployment # TODO: put this elsewhere, this wont run until after deployment is run
+      if: ${{ steps.deployment_status.outputs.result == 'waiting' }}
+      uses: octokit/request-action@v2.x
+      with:
+        # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
+        route: POST /repos/{repo}/statuses/{sha}
+        repo: ${{ github.repository }}
+        sha: ${{ inputs.sha }}
+        context: ${{ inputs.status-context }}
+        state: 'pending'
+        description: "Deployment awaiting approval."
         target_url: ${{ inputs.current_run_url }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
