@@ -10,7 +10,7 @@ concurrency:
 on:
   push:
     branches:
-      # - master
+      - master
       - alpha
       - next
       - '[0-9]+.[0-9]+.[0-9]+'
@@ -23,7 +23,7 @@ jobs:
 
   # checks-workflow:
   #   name: Checks
-  #   uses: elastic/elastic-charts/.github/workflows/checks.reusable.yml@master # TODO: set this to master
+  #   uses: elastic/elastic-charts/.github/workflows/checks.yml@next # TODO: set this to master
 
 
 #########################################################################################################

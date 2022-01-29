@@ -27,9 +27,9 @@ on:
 #########################################################################################################
   pull_request_target:
     branches:
-      - master
+      # - master
       # - alpha
-      # - next
+      - next
       # - '[0-9]+.[0-9]+.[0-9]+'
       # - '[0-9]+.[0-9]+.x'
       # - '[0-9]+.x'
@@ -48,15 +48,33 @@ jobs:
         shell: python
         run: |
           print("""${{ toJSON(github) }}""")
+      - name: Print event
+        shell: python
+        run: |
+          print("""${{ toJSON(github.event) }}""")
+      - name: Print event
+        shell: python
+        run: |
+          print("""${{ toJSON(github.event) }}""")
+      - run: echo "refs/pull/${{ github.event.pull_request.number }}/head"
 
-      - name: Create new PR deployment
+#########################################################################################################
+#       The ref or sha we want to deploy is on a fork
+#       Github is very paticular about anything from a fork triggering an action in ci
+#       Thus this event with NOT trigger the deploy but WILL correctly link a deployment to the fork ref
+#       See https://github.community/t/triggering-from-a-deployment-for-a-forked-pull-request-merge-commit/197622
+#########################################################################################################
+
+      - name: Create new PR deployment for fork ref
         id: deployment
+        # Using because octokit/request-action@v2.x cannot handle 'PR #123' in a path param
         uses: actions/github-script@v5
         with:
           # https://docs.github.com/en/rest/reference/deployments#create-or-update-an-environment
           script: | # This is javascript :)
             return await github.rest.repos.createDeployment({
-              ...context.repo,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
               ref: context.payload.pull_request.head.sha,
               auto_merge: false, // use branch as is without merging with base
               required_contexts: [],
@@ -69,12 +87,16 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
 #########################################################################################################
+#       We need to limit who can deploy prs from a fork, since we are kinda circumventing this
+#       restriction built into GitHub actions. Check if actor is an elastic member, add reviewers if needed.
+#########################################################################################################
 
-      - name: Check actor membership and return deploy state accordingly.
+      - name: Check if actor membership and return deploy state accordingly.
         uses: actions/github-script@v5
         id: state
         with:
           result-encoding: string
+          # TODO: check this for master merge and deploy
           script: | # This is javascript :)
             // https://docs.github.com/en/rest/reference/orgs#check-organization-membership-for-a-user
             const { status } = await github.rest.orgs.checkMembershipForUser({
@@ -117,18 +139,28 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 #########################################################################################################
+#       This is a pseudo-deployment that WILL trigger the deployment.
+#       Then we just pass the ref to the pull request to be used in the deploy job.
+#       This will be protected evviroment to prevent 3rd parties from running this without approval.
+#       This deployment with be deleted inside the deploy job once triggered.
+#       Additionally we don't know firebase channel url ahead of time (SITE_ID--CHANNEL_ID-RANDOM_HASH.web.app)
+#########################################################################################################
 
-      - name: Trigger deployment
+      - name: Create new PR deployment for base ref
+        # Using because octokit/request-action@v2.x cannot handle 'PR #123' in a path param
         uses: actions/github-script@v5
         with:
-          # https://docs.github.com/en/rest/reference/repos#create-a-repository-dispatch-event
+          # https://docs.github.com/en/rest/reference/deployments#create-or-update-an-environment
           script: | # This is javascript :)
-            await octokit.rest.repos.createDispatchEvent({
-              ...context.repo,
-              event_type: 'deploy_pull_request',
-              client_payload: {
-                ref: context.sha,
-                environment: "${{ env.ENVIRONMENT_NAME }}",
+            return await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              auto_merge: false, // use branch as is without merging with base
+              required_contexts: [],
+              environment: "${{ env.ENVIRONMENT_NAME }}",
+              payload: {
+                type: "pull_request",
                 repo: "${{ github.repository }}",
                 head_repo: "${{ github.event.pull_request.head.repo.full_name }}",
                 head_ref: "${{ github.event.pull_request.head.ref }}",
@@ -139,6 +171,8 @@ jobs:
                 deployment_id: "${{ fromJSON(steps.deployment.outputs.result).data.id }}",
               },
             });
-          github-token: ${{ secrets.ADMIN_TOKEN_GH }}
+          # Cannot use GITHUB_TOKEN here or won't trigger deploy action
+          # See https://github.com/octokit/request-action/issues/12
+          github-token: ${{ secrets.GH_DEPLOYMENT_TOKEN }}
 
 #########################################################################################################
