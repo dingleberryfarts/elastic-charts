@@ -35,7 +35,7 @@ jobs:
       sha: ${{ github.event.client_payload.commit_sha }}
       environment_url: ${{ github.event.client_payload.environment_url }}
       current_run_url: "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
-      status-context: "${{ env.status-context }}"
+      status-context: Playwright e2e # should match env.status-context, gh doesn't allow env in job.with scope :(
       environment: "${{ github.event.client_payload.environment }}"
       deployment_id: "${{ github.event.client_payload.deployment_id }}"
 
