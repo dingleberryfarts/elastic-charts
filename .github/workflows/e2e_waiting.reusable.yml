@@ -79,9 +79,10 @@ jobs:
       uses: actions/github-script@v5
       with:
         script: | # This is javascript :)
-          const deployments = ${{ fromJSON(steps.deployments.outputs.data).repository.deployments.nodes }}
-          const deployment = '${{ inputs.deployment_id }}' === '' ? deployments[0] : deployments.find(({ databaseId: id }) => {
-            return id === ${{ inputs.deployment_id }};
+          const deployIdStr = '${{ inputs.deployment_id }}';
+          const deployments = ${{ toJSON(fromJSON(steps.deployments.outputs.data).repository.deployments.nodes) }}
+          const deployment = deployIdStr === '' ? deployments[0] : deployments.find(({ databaseId: id }) => {
+            return id === Number(deployIdStr);
           });
           console.log(deployment);
 
