@@ -73,7 +73,7 @@ jobs:
     - name: Print response
       shell: python
       run: |
-        print("""${{ toJSON(steps.deployments.outputs.data) }}""")
+        print("""${{ steps.deployments.outputs.data }}""")
     - name: Trigger e2e test workflow
       id: waiting-check
       uses: actions/github-script@v5
