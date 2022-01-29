@@ -74,7 +74,7 @@ jobs:
       shell: python
       run: |
         print("""${{ steps.deployments.outputs.data }}""")
-    - name: Trigger e2e test workflow
+    - name: Check for waiting deployment status
       id: waiting-check
       uses: actions/github-script@v5
       with:
@@ -86,7 +86,7 @@ jobs:
           console.log(deployment);
 
           return deployment && deployment.status === 'WAITING';
-        github-token: ${{ secrets.ADMIN_TOKEN_GH }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Print ouputs
       shell: python
       run: |

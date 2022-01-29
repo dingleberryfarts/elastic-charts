@@ -74,7 +74,7 @@ jobs:
       shell: python
       run: |
         print("""${{ toJSON(steps.deployments.outputs.data) }}""")
-    - name: Trigger e2e test workflow
+    - name: Get deployment status
       id: deployment-status
       uses: actions/github-script@v5
       with:
