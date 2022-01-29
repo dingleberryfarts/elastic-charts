@@ -52,7 +52,7 @@ jobs:
           query ($owner: String!, $repo: String!) {
             repository(owner: $owner, name: $repo) {
               deployments(
-                last: 10
+                first: 10
                 environments: ["${{ inputs.environment }}"]
                 orderBy: { field: CREATED_AT, direction: DESC }
               ) {
