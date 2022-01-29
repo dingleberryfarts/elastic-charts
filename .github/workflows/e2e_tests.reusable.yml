@@ -94,10 +94,6 @@ jobs:
             return 'pending';
           }
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Print ouputs
-      shell: python
-      run: |
-        print("""${{ toJSON(steps.deployment-status.outputs.result) }}""")
 
 #########################################################################################################
 
