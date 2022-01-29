@@ -14,7 +14,7 @@ env:
 on:
   repository_dispatch: # Only triggers workflow from master
     types:
-      - 'Deploy pull request'
+      - 'Deployment | Pull Request'
 
 jobs:
 
@@ -185,6 +185,33 @@ jobs:
         environment_url: ${{ needs.build-deploy.outputs.environment_url }} # link to deployed firebase channel url
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trigger-e2e-tests:
+    name: Trigger end-to-end tests
+    needs: build-deploy
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    env:
+      deployment_id: ${{ github.event.client_payload.deployment_id }}
+    steps:
+      - name: Trigger deployment
+        uses: actions/github-script@v5
+        with:
+          # https://docs.github.com/en/rest/reference/repos#create-a-repository-dispatch-event
+          script: | # This is javascript :)
+            await github.rest.repos.createDispatchEvent({
+              ...context.repo,
+              event_type: 'Deployment | Pull Request',
+              client_payload: {
+                environment: "${{ env.ENVIRONMENT_NAME }}",
+                branch_name: "${{ github.event.pull_request.head.ref }}",
+                sha: "${{ github.event.pull_request.head.sha }}",
+                pr_number: ${{ github.event.pull_request.number }},
+                is_fork: ${{ github.event.pull_request.head.repo.fork }},
+                deployment_id: "${{ fromJSON(steps.deployment.outputs.result).data.id }}",
+              },
+            });
+          github-token: ${{ secrets.ADMIN_TOKEN_GH }}
 
 #########################################################################################################
 

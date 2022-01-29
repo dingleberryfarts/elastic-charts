@@ -43,7 +43,7 @@ jobs:
       with:
         result-encoding: string
         script: |
-          return "${{ github.ref_name }}" === 'master' ? 'Deploy GitHub pages' : "Deploy branch";
+          return "${{ github.ref_name }}" === 'master' ? 'Deployment | GitHub Pages' : "Deployment | Branch";
 
     - name: Create restricted environment
       if: github.ref_name != 'master'
@@ -70,6 +70,7 @@ jobs:
             ...context.repo,
             event_type: "${{ steps.event_type.outputs.result }}",
             client_payload: {
+              sha: "${{ github.sha }}",
               environment: "${{ steps.environment.outputs.result }}",
               branch_name: "${{ github.ref_name }}",
             },

@@ -13,7 +13,9 @@ env:
   E2E_CHECK_CONTEXT: 'Playwright e2e' # should match playwright.yml workflow
 
 on:
-  release:
+  repository_dispatch: # Only triggers workflow from master
+    types:
+      - 'End-to-end Tests'
 
 jobs:
 
@@ -22,8 +24,6 @@ jobs:
   checks:
     name: Initial checks
     runs-on: ubuntu-latest
-    # Disregard any event without an environment_url, assume any with it require e2e testing
-    if: ${{ github.event.deployment_status.environment_url != '' }}
     steps:
     - name: Handle successful deployment
       if: ${{ github.event.deployment_status.state == 'success' }}

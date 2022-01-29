@@ -124,7 +124,7 @@ jobs:
           script: | # This is javascript :)
             await github.rest.repos.createDispatchEvent({
               ...context.repo,
-              event_type: 'Deploy pull request',
+              event_type: 'Deployment | Pull Request',
               client_payload: {
                 environment: "${{ env.ENVIRONMENT_NAME }}",
                 branch_name: "${{ github.event.pull_request.head.ref }}",

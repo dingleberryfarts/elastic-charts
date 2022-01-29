@@ -14,11 +14,11 @@ env:
 on:
   repository_dispatch: # Only triggers workflow from master
     types:
-      - 'Deploy branch'
+      - 'Deployment | Branch'
 
 jobs:
   build-deploy:
-    name: "Deploy | ${{ github.event.deployment.environment }}"
+    name: "Deploy | ${{ github.event.client_payload.environment }}"
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.event.client_payload.environment }}
@@ -30,7 +30,7 @@ jobs:
         uses: nickofthyme/checkout-node-setup@v1
         with:
           repository: ${{ github.repo }}
-          ref: ${{ github.ref }} # TODO: check these make sense
+          ref: ${{ github.event.client_payload.sha }} # github context always points to latest master
           # See https://github.com/bahmutov/npm-install/issues/80
           skip-npm-install: true # This fails on deployment events
       - run: yarn install --frozen-lockfile # TODO: fix caching
@@ -80,10 +80,12 @@ jobs:
               ...context.repo,
               task: "deploy",
               per_page: 1,
-              sha: "${{ github.sha }}",
-              ref: "${{ github.ref_name }}",
+              sha: "${{ github.event.client_payload.sha }}",
+              ref: "${{ github.event.client_payload.branch_name }}",
               environment: "${{ github.event.client_payload.environment }}",
             });
+
+            console.log(deployment) // TODO: remove
 
             if (deployment) {
               await github.rest.repos.createDeploymentStatus({

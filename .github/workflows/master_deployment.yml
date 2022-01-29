@@ -14,13 +14,13 @@ env:
 on:
   repository_dispatch: # Only triggers workflow from master
     types:
-      - 'Deploy GitHub pages'
+      - 'Deployment | GitHub Pages'
 
 jobs:
   build-deploy:
     name: Deploy | github-pages
     runs-on: ubuntu-latest
-    if: ${{ github.ref_name == 'master' }}
+    if: ${{ github.event.client_payload.branch_name == 'master' }}
     # branch policies defined in repo environment settings are also enforced
     environment:
       name: github-pages
@@ -30,7 +30,7 @@ jobs:
         uses: nickofthyme/checkout-node-setup@v1
         with:
           repository: ${{ github.repo }}
-          ref: ${{ github.ref }} # TODO: check these make sense
+          ref: ${{ github.event.client_payload.sha }}
           # See https://github.com/bahmutov/npm-install/issues/80
           skip-npm-install: true # This fails on deployment events
       - run: yarn install --frozen-lockfile # TODO: fix caching
