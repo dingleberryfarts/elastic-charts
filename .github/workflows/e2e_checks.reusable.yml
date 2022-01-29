@@ -75,7 +75,7 @@ jobs:
       run: |
         print("""${{ toJSON(steps.deployments.outputs.data) }}""")
     - name: Trigger e2e test workflow
-      id: deployment_status
+      id: deployment-status
       uses: actions/github-script@v5
       with:
         result-encoding: string
@@ -88,19 +88,19 @@ jobs:
           if (deployment) {
             const { state, latestStatus } = deployment;
             if (state === 'ACTIVE' && latestStatus.state === 'SUCCESS') return 'success'
-            if (['ERROR', 'FAILURE', 'WAITING'].includes(latestStatus.state)) return latestStatus.state.toLowerCase();
+            if (['ERROR', 'FAILURE'].includes(latestStatus.state)) return latestStatus.state.toLowerCase();
             return 'pending';
           }
         github-token: ${{ secrets.ADMIN_TOKEN_GH }}
     - name: Print ouputs
       shell: python
       run: |
-        print("""${{ toJSON(steps.deployment_status.outputs.result) }}""")
+        print("""${{ toJSON(steps.deployment-status.outputs.result) }}""")
 
 #########################################################################################################
 
     - name: Handle no found deployment
-      if: ${{ !steps.deployment_status.outputs.result }}
+      if: ${{ !steps.deployment-status.outputs.result }}
       uses: octokit/request-action@v2.x
       with:
         # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
@@ -114,7 +114,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Handle successful deployment
-      if: ${{ steps.deployment_status.outputs.result == 'success' }}
+      if: ${{ steps.deployment-status.outputs.result == 'success' }}
       uses: octokit/request-action@v2.x
       with:
         # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
@@ -127,8 +127,8 @@ jobs:
         target_url: ${{ inputs.current_run_url }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Handle waiting deployment # TODO: put this elsewhere, this wont run until after deployment is run
-      if: ${{ steps.deployment_status.outputs.result == 'waiting' }}
+    - name: Handle deployment error or failure
+      if: ${{ steps.deployment-status.outputs.result == 'error' || steps.deployment-status.outputs.result == 'failure' }}
       uses: octokit/request-action@v2.x
       with:
         # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
@@ -136,13 +136,13 @@ jobs:
         repo: ${{ github.repository }}
         sha: ${{ inputs.sha }}
         context: ${{ inputs.status-context }}
-        state: 'pending'
-        description: "Deployment awaiting approval."
+        state: ${{ steps.deployment-status.outputs.result }}
+        description: "Deployment ${{ steps.deployment-status.outputs.result }}, testing aborted."
         target_url: ${{ inputs.current_run_url }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Handle deployment error or failure
-      if: ${{ steps.deployment_status.outputs.result == 'error' || steps.deployment_status.outputs.result == 'failure' }}
+      if: ${{ steps.deployment-status.outputs.result == 'error' || steps.deployment-status.outputs.result == 'failure' }}
       uses: octokit/request-action@v2.x
       with:
         # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
@@ -150,27 +150,13 @@ jobs:
         repo: ${{ github.repository }}
         sha: ${{ inputs.sha }}
         context: ${{ inputs.status-context }}
-        state: ${{ steps.deployment_status.outputs.result }}
-        description: "Deployment ${{ steps.deployment_status.outputs.result }}, testing aborted."
-        target_url: ${{ inputs.current_run_url }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Handle deployment error or failure
-      if: ${{ steps.deployment_status.outputs.result == 'error' || steps.deployment_status.outputs.result == 'failure' }}
-      uses: octokit/request-action@v2.x
-      with:
-        # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
-        route: POST /repos/{repo}/statuses/{sha}
-        repo: ${{ github.repository }}
-        sha: ${{ inputs.sha }}
-        context: ${{ inputs.status-context }}
-        state: ${{ steps.deployment_status.outputs.result }}
-        description: "Deployment ${{ steps.deployment_status.outputs.result }}, testing aborted."
+        state: ${{ steps.deployment-status.outputs.result }}
+        description: "Deployment ${{ steps.deployment-status.outputs.result }}, testing aborted."
         target_url: ${{ inputs.current_run_url }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Handle pending deployment # To catch edge case, should never be pending a deployment
-      if: ${{ steps.deployment_status.outputs.result == 'pending' }}
+      if: ${{ steps.deployment-status.outputs.result == 'pending' }}
       uses: octokit/request-action@v2.x
       with:
         # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
@@ -184,10 +170,10 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Fail check run if deployment was not successful
-      if: ${{ steps.deployment_status.outputs.result != 'success' }}
+      if: ${{ steps.deployment-status.outputs.result != 'success' }}
       uses: actions/github-script@v3
       with:
-        script: core.setFailed("Testing aborted due to '${{ steps.deployment_status.outputs.result || "missing" }}' deployment.")
+        script: core.setFailed("Testing aborted due to '${{ steps.deployment-status.outputs.result || "missing" }}' deployment.")
 
 #########################################################################################################
 

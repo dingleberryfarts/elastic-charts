@@ -22,6 +22,16 @@ on:
       - 'Deployment | Branch'
 
 jobs:
+  deployment-waiting-check:
+    name: Deployment Waiting check
+    uses: elastic/elastic-charts/.github/workflows/e2e_waiting.reusable.yml@master
+    with:
+      sha: ${{ github.event.client_payload.sha }}
+      current_run_url: "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
+      environment: "${{ github.event.client_payload.environment }}"
+
+#########################################################################################################
+
   build-deploy:
     name: "Deploy | ${{ github.event.client_payload.environment }}"
     runs-on: ubuntu-latest

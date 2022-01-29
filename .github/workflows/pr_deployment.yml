@@ -25,6 +25,14 @@ on:
       - 'Deployment | Pull Request'
 
 jobs:
+  deployment-waiting-check:
+    name: Deployment Waiting check
+    uses: elastic/elastic-charts/.github/workflows/e2e_waiting.reusable.yml@master
+    with:
+      sha: ${{ github.event.client_payload.head_sha }}
+      current_run_url: "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
+      environment: "${{ github.event.client_payload.environment }}"
+      deployment_id: "${{ github.event.client_payload.deployment_id }}"
 
 #########################################################################################################
 
