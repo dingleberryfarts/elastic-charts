@@ -58,7 +58,7 @@ jobs:
           # See https://console.cloud.google.com/iam-admin/iam?project=ech-e2e-ci
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_ECH_E2E_CI }}'
           projectId: 'ech-e2e-ci'
-          channelId: ${{ github.event.client_payload.ref_name }} # e.g. next, v40.0.0, etc.
+          channelId: ${{ github.event.client_payload.branch_name }} # e.g. next, v40.0.0, etc.
 
       - name: Outputs # TODO: remove
         shell: python
