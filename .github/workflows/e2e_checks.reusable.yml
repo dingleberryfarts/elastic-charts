@@ -174,7 +174,7 @@ jobs:
       if: ${{ steps.deployment-status.outputs.result != 'success' }}
       uses: actions/github-script@v3
       with:
-        script: core.setFailed("Testing aborted due to '${{ steps.deployment-status.outputs.result || "missing" }}' deployment.")
+        script: core.setFailed("Testing aborted due to ${{ steps.deployment-status.outputs.result || 'missing' }} deployment.")
 
 #########################################################################################################
 

@@ -91,7 +91,7 @@ jobs:
     - name: Print ouputs
       shell: python
       run: |
-        print(${{ steps.waiting-check.outputs.result }})
+        print("${{ steps.waiting-check.outputs.result }}")
 
 #########################################################################################################
 
