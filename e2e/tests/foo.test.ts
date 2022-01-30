@@ -10,10 +10,6 @@ import { test, expect } from '@playwright/test';
 
 // eslint-disable-next-line jest/no-done-callback
 test('basic test', async ({ page }, info) => {
-  await page.goto('https://playwright.dev/'); // test111
-  const title = page.locator('.navbar__inner .navbar__title');
-  await expect(title).toHaveText('Playwright');
-
-  // console.log(info);
+  await page.goto('https://example.com/'); // test111
   expect(await page.screenshot()).toMatchSnapshot([`${info.title}.png`]);
 });
