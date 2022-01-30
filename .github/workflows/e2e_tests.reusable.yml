@@ -254,7 +254,7 @@ jobs:
         run: echo "${{ steps.playwright.outputs.version }}"
 
   e2e:
-    name: 'Test / ${{ matrix.test-file }} / ${{ matrix.browser }}'
+    name: '${{ matrix.browser }} / ${{ matrix.test-file }}'
     runs-on: ubuntu-latest
     needs: e2e-setup
     strategy:
@@ -276,7 +276,7 @@ jobs:
         working-directory: e2e
       - name: Test run
         working-directory: e2e
-        run: yarn test --project=${{ matrix.browser }} ./tests/${{ matrix.test-file }}
+        run: yarn test --forbid-only --project=${{ matrix.browser }} ./tests/${{ matrix.test-file }}
 
   e2e-status-success:
     name: set success Status
@@ -290,7 +290,7 @@ jobs:
         shell: python
         run: |
           print("""${{ toJSON(needs) }}""")
-      - name: Handle successful deployment
+      - name: Set success status
         uses: octokit/request-action@v2.x
         with:
           # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
@@ -310,7 +310,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: e2e
     steps:
-      - name: Handle successful deployment
+      - name: Set failure status
         uses: octokit/request-action@v2.x
         with:
           # https://docs.github.com/en/rest/reference/commits#create-a-commit-status
@@ -325,12 +325,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   e2e-status-cancel:
-    name: Set failure status
+    name: Set cancelled status
     if: ${{ cancelled() }}
     runs-on: ubuntu-latest
     needs: e2e
     steps:
-      - name: Handle successful deployment
+      - name: Set cancelled status
         uses: octokit/request-action@v2.x
         with:
           # https://docs.github.com/en/rest/reference/commits#create-a-commit-status

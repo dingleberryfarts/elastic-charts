@@ -159,7 +159,7 @@ jobs:
     env:
       deployment_id: ${{ github.event.client_payload.deployment_id }}
     steps:
-    # Github automatically creates a duplicate deployment refernce for build-deploy job
+    # Github automatically creates a duplicate deployment reference for build-deploy job
     # that points to the wrong commit (from master), if pr is from a fork
     - name: Delete auto-created Deployment from build-deploy job
       if: ${{ github.event.client_payload.is_fork }}

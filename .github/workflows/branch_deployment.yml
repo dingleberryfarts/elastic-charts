@@ -38,7 +38,7 @@ jobs:
     environment:
       name: ${{ github.event.client_payload.environment }}
     outputs:
-      environment_url: https://ech-e2e-ci--alphaaa-zfvo4b6u.web.app # TODO this
+      environment_url: https://ech-e2e-ci--alpha-zfvo4b6u.web.app # TODO this
       # environment_url: ${{ steps.deploy.outputs.details_url }}
     steps:
       - run: echo "Placeholder"
@@ -89,6 +89,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-deploy
     steps:
+      # Github automatically creates a deployment reference for build-deploy job
+      # that points to the wrong commit (from master via repository_dispatch).
       - name: Update deployment status with environment url
         uses: actions/github-script@v5
         with:
@@ -101,8 +103,6 @@ jobs:
               ref: "${{ github.event.client_payload.branch_name }}",
               environment: "${{ github.event.client_payload.environment }}",
             });
-
-            console.log(deployment) // TODO: remove
 
             if (deployment) {
               await github.rest.repos.createDeploymentStatus({
