@@ -12,11 +12,11 @@
   "dependencies": {
     "@elastic/charts": "^30.2.0",
     "@elastic/datemath": "^5.0.3",
-    "@elastic/eui": "^57.0.0",
+    "@elastic/eui": "^90.0.0",
     "@emotion/react": "^11.7.1",
     "luxon": "^1.27.0",
     "moment": "^2.29.1",
-    "moment-timezone": "^0.5.32",
+    "moment-timezone": "^0.5.41",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "seedrandom": "^3.0.5"
